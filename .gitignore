@@ -1,49 +1,66 @@
-# History files
-.Rhistory
-.Rapp.history
+R Script File (R)
+#load the library
+library(ggplot2)
+library(ggcorrplot)
+library(car)
 
-# Session Data files
-.RData
-.RDataTmp
+# Load the dataset
+data <- read.csv("C:/Users/rajam/Downloads/HousePricePrediction.csv")
 
-# User-specific files
-.Ruserdata
+# Data Cleaning & Handling Missing Values
+data <- na.omit(data)  # Remove missing values
+data <- subset(data, select = -Id)  # Drop ID column
 
-# Example code in package build process
-*-Ex.R
+# Exploratory Data Analysis (EDA)
+numeric_data <- data[sapply(data, is.numeric)]
+cor_matrix <- cor(numeric_data)
+ggcorrplot(cor_matrix, hc.order = TRUE, lab = TRUE)
 
-# Output files from R CMD build
-/*.tar.gz
+# Sale Price Distribution
+ggplot(data, aes(x = SalePrice)) +
+  geom_histogram(binwidth = 10000, fill = "skyblue", color = "darkblue") +
+  labs(title = "Distribution of Sale Price", x = "Price") +
+  theme_minimal()
 
-# Output files from R CMD check
-/*.Rcheck/
+# Scatter Plot: Sale Price vs Lot Area
+data <- data[data$LotArea < 40000, ]  # Remove extreme Lot Area values
+ggplot(data, aes(x = LotArea, y = SalePrice)) +
+  geom_point(color = "red") +
+  geom_smooth(method = lm) +
+  labs(title = "Scatter Plot: Lot Area vs. Sale Price", x = "Lot Area", y = "Sale Price") +
+  theme_minimal()
 
-# RStudio files
-.Rproj.user/
+# Split Data into Training (70%) and Testing (30%)
+set.seed(123)
+train_indices <- sample(1:nrow(data), size = round(0.7 * nrow(data)))
+train_data <- data[train_indices, ]
+test_data <- data[-train_indices, ]
 
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
+# Train Multiple Linear Regression Model
+model <- lm(SalePrice ~ ., data = train_data)
+summary(model)
 
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
-.httr-oauth
+# Check for Multicollinearity
+vif_values <- vif(model)
+print(vif_values)
 
-# knitr and R markdown default cache directories
-*_cache/
-/cache/
+# Model Prediction
+predictions <- predict(model, newdata = test_data)
 
-# Temporary files created by R markdown
-*.utf8.md
-*.knit.md
+# Model Evaluation
+actual_values <- test_data$SalePrice
+rmse <- sqrt(mean((predictions - actual_values)^2))
+r_squared <- summary(model)$r.squared
+adjusted_r_squared <- summary(model)$adj.r.squared
 
-# R Environment Variables
-.Renviron
+cat("RMSE:", rmse, "\n")
+cat("R-Squared:", r_squared, "\n")
+cat("Adjusted R-Squared:", adjusted_r_squared, "\n")
 
-# pkgdown site
-docs/
+# Predict on a Sample Test Case
+test_case <- data[1, -which(names(data) == "SalePrice")]  # Select first row (excluding SalePrice)
+predicted_price <- predict(model, newdata = test_case)
+cat("Predicted Sale Price:", predicted_price, "\n")
 
-# translation temp files
-po/*~
-
-# RStudio Connect folder
-rsconnect/
+# Visualizing Model Predictions
+avPlots(model)
